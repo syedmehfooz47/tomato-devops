@@ -89,9 +89,13 @@ pipeline {
         }
     }
   post {
+        always {
+            generate_reports(projectName: 'Tomato-CD', imageName: 'tomato-frontend, tomato-backend, tomato-admin', imageTag: params.FRONTEND_DOCKER_TAG+','+params.BACKEND_DOCKER_TAG+','+params.ADMIN_DOCKER_TAG)
+        }
         success {
             script {
                 emailext attachLog: true,
+                attachmentsPattern: 'reports/build-report.txt',
                 from: 'jenkins@alerts.securocloud.in',
                 subject: "Tomato Application has been updated and deployed - '${currentBuild.result}'",
                 body: """
@@ -116,6 +120,7 @@ pipeline {
       failure {
             script {
                 emailext attachLog: true,
+                attachmentsPattern: 'reports/build-report.txt',
                 from: 'jenkins@alerts.securocloud.in',
                 subject: "Tomato Application build failed - '${currentBuild.result}'",
                 body: """
