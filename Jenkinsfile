@@ -74,7 +74,7 @@ pipeline {
         }
 
 
-        stage('Exporting environment variables') {
+        stage('Updating environment variables') {
             parallel{
                 
                 stage("Update Frontend env"){
