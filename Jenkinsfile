@@ -57,7 +57,7 @@ pipeline {
 
         stage('OWASP Dependency Check') {
             steps {
-                owasp_dependency()
+                owasp-self-heal()
             }
         }
 
