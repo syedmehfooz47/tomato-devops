@@ -1,0 +1,67 @@
+version: "3.8"
+
+services:
+  mongodb:
+    container_name: mongo-service
+    image: mongo:latest
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - tomato-network
+
+  backend:
+    container_name: backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env.docker
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./backend/uploads:/app/uploads
+    depends_on:
+      - mongodb
+    networks:
+      - tomato-network
+
+  frontend:
+    container_name: frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./frontend/.env.docker
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    networks:
+      - tomato-network
+
+  admin:
+    container_name: admin
+    build:
+      context: ./admin
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./admin/.env.docker
+    ports:
+      - "5174:5174"
+    depends_on:
+      - backend
+    networks:
+      - tomato-network
+
+volumes:
+  mongo_data:
+
+networks:
+  tomato-network:
+    driver: bridge
