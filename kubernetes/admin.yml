@@ -21,9 +21,7 @@ spec:
           image: syedmehfooz/tomato-admin:v.1.4
           ports:
             - containerPort: 5174
-          # Note: VITE_BACKEND_URL is baked into the image at build time via .env.docker
-          # Runtime env vars have no effect on Vite static bundles
-          # The Automations/update-admin-env.sh script sets the correct URL before docker build
+          
 ---
 apiVersion: v1
 kind: Service
