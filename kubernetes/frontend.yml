@@ -21,6 +21,9 @@ spec:
           image: syedmehfooz/tomato-frontend:v1.2
           ports:
             - containerPort: 5173
+          # Note: VITE_BACKEND_URL is baked into the image at build time via .env.docker
+          # Runtime env vars have no effect on Vite static bundles
+          # The Automations/update-frontend-env.sh script sets the correct URL before docker build
 ---
 apiVersion: v1
 kind: Service
