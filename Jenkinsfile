@@ -6,7 +6,7 @@ pipeline {
     environment {
         GIT_URL = 'https://github.com/syedmehfooz47/tomato-devops.git'
         GIT_BRANCH = 'main'
-        DOCKER_HUB_USER = 'syedmehfooz47'
+        DOCKER_HUB_USER = 'syedmehfooz'
         SONAR_API = 'Sonar'
         SONAR_PROJECT = 'tomato-devops'
         SONAR_KEY = 'tomato-devops'
