@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: syedmehfooz/tomato-frontend:v1.0
+          image: syedmehfooz/tomato-frontend:v1.2
           ports:
             - containerPort: 5173
 ---

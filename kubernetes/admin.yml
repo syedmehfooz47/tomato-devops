@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: admin
-          image: syedmehfooz/tomato-admin:v1.0
+          image: syedmehfooz/tomato-admin:v1.2
           ports:
             - containerPort: 5174
 ---
