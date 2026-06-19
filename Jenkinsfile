@@ -145,7 +145,16 @@ pipeline {
             generate_reports(projectName: 'Tomato-DevOps', imageName: 'tomato-frontend, tomato-backend, tomato-admin', imageTag: params.FRONTEND_DOCKER_TAG+','+params.BACKEND_DOCKER_TAG+','+params.ADMIN_DOCKER_TAG)
         }
         success {
-            archiveArtifacts artifacts: '*.xml', followSymlinks: false
+            script {
+                if (fileExists('dependency-check-report.xml')) {
+                    archiveArtifacts(
+                        artifacts: 'dependency-check-report.xml',
+                        followSymlinks: false
+                    )
+                } else {
+                    echo "Dependency Check report not found. Continuing pipeline..."
+                }
+            }
             build job: "Tomato-CD", parameters: [
                 string(name: 'FRONTEND_DOCKER_TAG', value: "${params.FRONTEND_DOCKER_TAG}"),
                 string(name: 'BACKEND_DOCKER_TAG', value: "${params.BACKEND_DOCKER_TAG}"),
