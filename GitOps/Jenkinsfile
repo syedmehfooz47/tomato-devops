@@ -47,18 +47,18 @@ pipeline {
                 script{
                     dir('kubernetes'){
                         sh """
-                            sed -i -e s/tomato-backend.*/tomato-backend:${params.BACKEND_DOCKER_TAG}/g backend.yaml
+                            sed -i -e s/tomato-backend.*/tomato-backend:${params.BACKEND_DOCKER_TAG}/g backend.yml
                         """
                     }
                     
                     dir('kubernetes'){
                         sh """
-                            sed -i -e s/tomato-admin.*/tomato-admin:${params.ADMIN_DOCKER_TAG}/g admin.yaml
+                            sed -i -e s/tomato-admin.*/tomato-admin:${params.ADMIN_DOCKER_TAG}/g admin.yml
                         """
                     }
                     dir('kubernetes'){
                         sh """
-                            sed -i -e s/tomato-frontend.*/tomato-frontend:${params.FRONTEND_DOCKER_TAG}/g frontend.yaml
+                            sed -i -e s/tomato-frontend.*/tomato-frontend:${params.FRONTEND_DOCKER_TAG}/g frontend.yml
                         """
                     }
                     
