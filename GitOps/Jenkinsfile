@@ -9,9 +9,7 @@ pipeline {
     }
 
     parameters {
-        string(name: 'FRONTEND_DOCKER_TAG', defaultValue: '', description: 'Frontend Docker tag of the image built by the CI job')
-        string(name: 'BACKEND_DOCKER_TAG', defaultValue: '', description: 'Backend Docker tag of the image built by the CI job')
-        string(name: 'ADMIN_DOCKER_TAG', defaultValue: '', description: 'Admin Docker tag of the image built by the CI job')
+        string(name: 'DOCKER_TAG', defaultValue: '', description: 'Docker tag of the image built by the CI job')
     }
 
     stages {
@@ -34,34 +32,21 @@ pipeline {
         stage('Verify: Docker Image Tags') {
             steps {
                 script{
-                    echo "FRONTEND_DOCKER_TAG: ${params.FRONTEND_DOCKER_TAG}"
-                    echo "BACKEND_DOCKER_TAG: ${params.BACKEND_DOCKER_TAG}"
-                    echo "ADMIN_DOCKER_TAG: ${params.ADMIN_DOCKER_TAG}"
+                    echo "DOCKER_TAG: ${params.DOCKER_TAG}"
                 }
             }
         }
-        
         
         stage("Update: Kubernetes manifests"){ 
             steps{
                 script{
                     dir('kubernetes'){
                         sh """
-                            sed -i -e s/tomato-backend.*/tomato-backend:${params.BACKEND_DOCKER_TAG}/g backend.yml
+                            sed -i -e s/tomato-backend.*/tomato-backend:${params.DOCKER_TAG}/g backend.yml
+                            sed -i -e s/tomato-admin.*/tomato-admin:${params.DOCKER_TAG}/g admin.yml
+                            sed -i -e s/tomato-frontend.*/tomato-frontend:${params.DOCKER_TAG}/g frontend.yml
                         """
                     }
-                    
-                    dir('kubernetes'){
-                        sh """
-                            sed -i -e s/tomato-admin.*/tomato-admin:${params.ADMIN_DOCKER_TAG}/g admin.yml
-                        """
-                    }
-                    dir('kubernetes'){
-                        sh """
-                            sed -i -e s/tomato-frontend.*/tomato-frontend:${params.FRONTEND_DOCKER_TAG}/g frontend.yml
-                        """
-                    }
-                    
                 }
             }
         }
@@ -77,8 +62,11 @@ pipeline {
                         echo "Adding changes to git: "
                         git add .
                         
+                        git config user.email "syedmehfoozcs@gmail.com"
+                        git config user.name "syedmehfooz47"
+
                         echo "Commiting changes: "
-                        git commit -m "Updated environment variables"
+                        git commit -m "Update Kubernetes manifests [skip ci]"
                         
                         echo "Pushing changes to github: "
                         git push ${env.GIT_URL} ${env.GIT_BRANCH}
@@ -90,13 +78,13 @@ pipeline {
     }
   post {
         always {
-            generate_reports(projectName: 'Tomato-CD', imageName: 'tomato-frontend, tomato-backend, tomato-admin', imageTag: params.FRONTEND_DOCKER_TAG+','+params.BACKEND_DOCKER_TAG+','+params.ADMIN_DOCKER_TAG)
+            generate_reports(projectName: 'Tomato-CD', imageName: 'tomato-frontend, tomato-backend, tomato-admin', imageTag: "${params.DOCKER_TAG},${params.DOCKER_TAG},${params.DOCKER_TAG}")
         }
         success {
             script {
                 emailext attachLog: true,
                 attachmentsPattern: 'reports/build-report.txt',
-                from: 'jenkins@alerts.securocloud.in',
+                from: 'jenkins@alerts.syedmehfooz.com',
                 subject: "Tomato Application has been updated and deployed - '${currentBuild.result}'",
                 body: """
                     <html>
@@ -121,7 +109,7 @@ pipeline {
             script {
                 emailext attachLog: true,
                 attachmentsPattern: 'reports/build-report.txt',
-                from: 'jenkins@alerts.securocloud.in',
+                from: 'jenkins@alerts.syedmehfooz.com',
                 subject: "Tomato Application build failed - '${currentBuild.result}'",
                 body: """
                     <html>
