@@ -70,11 +70,11 @@ pipeline {
             steps {
                 script {
                     sh '''
-                        if ! command -v node &> /dev/null; then
-                            echo "Downloading Node.js..."
-                            curl -fsSLO https://nodejs.org/dist/v20.11.1/node-v20.11.1-linux-arm64.tar.xz
-                            tar -xf node-v20.11.1-linux-arm64.tar.xz
-                            rm node-v20.11.1-linux-arm64.tar.xz
+                        if ! command -v node &> /dev/null || [ "$(node -v | cut -d . -f 1)" != "v22" ]; then
+                            echo "Downloading Node.js v22..."
+                            curl -fsSLO https://nodejs.org/dist/v22.11.0/node-v22.11.0-linux-arm64.tar.xz
+                            tar -xf node-v22.11.0-linux-arm64.tar.xz
+                            rm node-v22.11.0-linux-arm64.tar.xz
                         fi
                     '''
                 }
@@ -85,7 +85,7 @@ pipeline {
             when { environment name: 'SKIP_CI', value: 'false' }
             steps {
                 script {
-                    withEnv(["PATH+NODE=${env.WORKSPACE}/node-v20.11.1-linux-arm64/bin"]) {
+                    withEnv(["PATH+NODE=${env.WORKSPACE}/node-v22.11.0-linux-arm64/bin"]) {
                         sonarqube_analysis(env.SONAR_API, env.SONAR_PROJECT, env.SONAR_KEY)
                     }
                 }
