@@ -218,24 +218,26 @@ pipeline {
         }
         failure {
             script {
-                emailext attachLog: true,
-                attachmentsPattern: 'reports/build-report.txt',
-                from: 'jenkins@alerts.syedmehfooz.com',
-                subject: "Tomato Application CI build failed - '${currentBuild.result}'",
-                body: """
-                    <html>
-                    <body>
-                        <div style="background-color: #FFA07A; padding: 10px; margin-bottom: 10px;">
-                            <p style="color: black; font-weight: bold;">Project: ${env.JOB_NAME}</p>
-                        </div>
-                        <div style="background-color: #90EE90; padding: 10px; margin-bottom: 10px;">
-                            <p style="color: black; font-weight: bold;">Build Number: ${env.BUILD_NUMBER}</p>
-                        </div>
-                    </body>
-                    </html>
-                """,
-                to: 'hello@syedmehfooz.com',
-                mimeType: 'text/html'
+                if (env.SKIP_CI != 'true') {
+                    emailext attachLog: true,
+                    attachmentsPattern: 'reports/build-report.txt',
+                    from: 'jenkins@alerts.syedmehfooz.com',
+                    subject: "Tomato Application CI build failed - '${currentBuild.result}'",
+                    body: """
+                        <html>
+                        <body>
+                            <div style="background-color: #FFA07A; padding: 10px; margin-bottom: 10px;">
+                                <p style="color: black; font-weight: bold;">Project: ${env.JOB_NAME}</p>
+                            </div>
+                            <div style="background-color: #90EE90; padding: 10px; margin-bottom: 10px;">
+                                <p style="color: black; font-weight: bold;">Build Number: ${env.BUILD_NUMBER}</p>
+                            </div>
+                        </body>
+                        </html>
+                    """,
+                    to: 'hello@syedmehfooz.com',
+                    mimeType: 'text/html'
+                }
             }
         }
     }
