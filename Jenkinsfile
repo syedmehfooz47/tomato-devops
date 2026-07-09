@@ -3,10 +3,6 @@
 pipeline {
     agent any
 
-    tools {
-        nodejs 'node'
-    }
-
     environment {
         GIT_URL = 'https://github.com/syedmehfooz47/tomato-devops.git'
         GIT_BRANCH = 'main'
@@ -69,10 +65,30 @@ pipeline {
             }
         }
 
+        stage('Install Node.js') {
+            when { environment name: 'SKIP_CI', value: 'false' }
+            steps {
+                script {
+                    sh '''
+                        if ! command -v node &> /dev/null; then
+                            echo "Downloading Node.js..."
+                            curl -fsSLO https://nodejs.org/dist/v20.11.1/node-v20.11.1-linux-arm64.tar.xz
+                            tar -xf node-v20.11.1-linux-arm64.tar.xz
+                            rm node-v20.11.1-linux-arm64.tar.xz
+                        fi
+                    '''
+                }
+            }
+        }
+
         stage('SonarQube Analysis') {
             when { environment name: 'SKIP_CI', value: 'false' }
             steps {
-                sonarqube_analysis(env.SONAR_API, env.SONAR_PROJECT, env.SONAR_KEY)
+                script {
+                    withEnv(["PATH+NODE=${env.WORKSPACE}/node-v20.11.1-linux-arm64/bin"]) {
+                        sonarqube_analysis(env.SONAR_API, env.SONAR_PROJECT, env.SONAR_KEY)
+                    }
+                }
             }
         }
 
