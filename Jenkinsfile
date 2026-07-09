@@ -33,9 +33,9 @@ pipeline {
             steps {
                 script {
                     def commitMsg = sh(script: "git log -1 --pretty=%B", returnStdout: true).trim()
-                    if (commitMsg.contains('[skip ci]')) {
+                    if (commitMsg.contains('Update Kubernetes manifests [skip ci]')) {
                         currentBuild.result = 'SUCCESS'
-                        currentBuild.description = 'Skipped due to [skip ci]'
+                        currentBuild.description = 'Skipped due to GitOps manifest update'
                         env.SKIP_CI = 'true'
                     } else {
                         env.SKIP_CI = 'false'
