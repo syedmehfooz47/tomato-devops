@@ -98,7 +98,17 @@
     display: none;
     right: 0;
     z-index: 1;
-    top: 120%;
+    top: calc(100% + 10px);
+}
+/* Invisible bridge to prevent hover state from being lost */
+.nav-profile-dropdown::before {
+    content: '';
+    position: absolute;
+    top: -15px;
+    left: 0;
+    right: 0;
+    height: 15px;
+    background: transparent;
 }
 .navbar-profile:hover .nav-profile-dropdown{
     display: flex;
