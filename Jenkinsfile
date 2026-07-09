@@ -3,6 +3,10 @@
 pipeline {
     agent any
 
+    tools {
+        nodejs 'node'
+    }
+
     environment {
         GIT_URL = 'https://github.com/syedmehfooz47/tomato-devops.git'
         GIT_BRANCH = 'main'
