@@ -24,7 +24,7 @@ echo "Found mkcluster-worker IP: $WORKER_IP"
 # Define our services and their ports
 # Format: "ServiceName:NodePort:HostPort"
 SERVICES=(
-    "frontend:31000:8960"
+    "frontend:31003:8960"
     "admin:31001:8961"
     "backend:31002:8962"
 )
@@ -70,7 +70,7 @@ echo "=========================================="
 echo " Setup Complete! "
 echo "=========================================="
 echo "Your services are now exposed on the VPS host at the following local ports:"
-echo " - Frontend (NodePort 31000) -> 127.0.0.1:8960"
+echo " - Frontend (NodePort 31003) -> 127.0.0.1:8960"
 echo " - Admin    (NodePort 31001) -> 127.0.0.1:8961"
 echo " - Backend  (NodePort 31002) -> 127.0.0.1:8962"
 echo ""
