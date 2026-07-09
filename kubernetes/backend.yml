@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: syedmehfooz/tomato-backend:v1.48
+          image: syedmehfooz/tomato-backend:v1.50
           ports:
             - containerPort: 4000
           env:
