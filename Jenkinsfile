@@ -11,25 +11,11 @@ pipeline {
         SONAR_PROJECT = 'tomato-devops'
         SONAR_KEY = 'tomato-devops'
         SONAR_HOME = tool 'Sonar'
-
-    }
-    parameters {
-        string(name: 'FRONTEND_DOCKER_TAG', defaultValue: '', description: 'Setting docker image for latest push')
-        string(name: 'BACKEND_DOCKER_TAG', defaultValue: '', description: 'Setting docker image for latest push')
-        string(name: 'ADMIN_DOCKER_TAG', defaultValue: '', description: 'Setting docker image for latest push')
+        DOCKER_TAG = "v1.${env.BUILD_NUMBER}"
+        GIT_CREDENTIALS = 'Github-Credentials'
     }
 
     stages {
-
-        stage("Validate Parameters") {
-            steps {
-                script {
-                    if (params.FRONTEND_DOCKER_TAG == '' || params.BACKEND_DOCKER_TAG == '' || params.ADMIN_DOCKER_TAG == '') {
-                        error("FRONTEND_DOCKER_TAG and BACKEND_DOCKER_TAG and ADMIN_DOCKER_TAG must be provided.")
-                    }
-                }
-            }
-        }
 
         stage('Clean Workspace') {
             steps {
@@ -39,35 +25,55 @@ pipeline {
 
         stage('Checkout Code') {
             steps {
-                code_checkout(env.GIT_URL, env.GIT_BRANCH)
+                git branch: env.GIT_BRANCH, credentialsId: env.GIT_CREDENTIALS, url: env.GIT_URL
+            }
+        }
+
+        stage('Check Skip CI') {
+            steps {
+                script {
+                    def commitMsg = sh(script: "git log -1 --pretty=%B", returnStdout: true).trim()
+                    if (commitMsg.contains('[skip ci]')) {
+                        currentBuild.result = 'SUCCESS'
+                        currentBuild.description = 'Skipped due to [skip ci]'
+                        env.SKIP_CI = 'true'
+                    } else {
+                        env.SKIP_CI = 'false'
+                    }
+                }
             }
         }
 
         stage('Run Tests') {
+            when { environment name: 'SKIP_CI', value: 'false' }
             steps {
                 run_tests()
             }
         }
 
         stage('Trivy File System Scan') {
+            when { environment name: 'SKIP_CI', value: 'false' }
             steps {
                 trivy_scan()
             }
         }
 
         stage('OWASP Dependency Check') {
+            when { environment name: 'SKIP_CI', value: 'false' }
             steps {
                 echo "Skip"
             }
         }
 
         stage('SonarQube Analysis') {
+            when { environment name: 'SKIP_CI', value: 'false' }
             steps {
                 sonarqube_analysis(env.SONAR_API, env.SONAR_PROJECT, env.SONAR_KEY)
             }
         }
 
         stage('Quality Gate') {
+            when { environment name: 'SKIP_CI', value: 'false' }
             steps {
                 sonarqube_code_quality()
             }
@@ -75,6 +81,7 @@ pipeline {
 
 
         stage('Updating environment variables') {
+            when { environment name: 'SKIP_CI', value: 'false' }
             parallel{
                 
                 stage("Update Frontend env"){
@@ -102,39 +109,42 @@ pipeline {
 
 
         stage("Docker: Build Images"){
+            when { environment name: 'SKIP_CI', value: 'false' }
             steps{
                 script{
                         dir('backend'){
-                            docker_build("tomato-backend","${params.BACKEND_DOCKER_TAG}","${env.DOCKER_HUB_USER}")
+                            docker_build("tomato-backend","${env.DOCKER_TAG}","${env.DOCKER_HUB_USER}")
                         }
                     
                         dir('frontend'){
-                            docker_build("tomato-frontend","${params.FRONTEND_DOCKER_TAG}","${env.DOCKER_HUB_USER}")
+                            docker_build("tomato-frontend","${env.DOCKER_TAG}","${env.DOCKER_HUB_USER}")
                         }
                     
                         dir('admin'){
-                            docker_build("tomato-admin","${params.ADMIN_DOCKER_TAG}","${env.DOCKER_HUB_USER}")
+                            docker_build("tomato-admin","${env.DOCKER_TAG}","${env.DOCKER_HUB_USER}")
                         }
                 }
             }
         }
         
         stage("Docker: Push to DockerHub"){
+            when { environment name: 'SKIP_CI', value: 'false' }
             steps{
                 script{
-                    docker_push("tomato-backend","${params.BACKEND_DOCKER_TAG}","${env.DOCKER_HUB_USER}") 
-                    docker_push("tomato-frontend","${params.FRONTEND_DOCKER_TAG}","${env.DOCKER_HUB_USER}")
-                    docker_push("tomato-admin","${params.ADMIN_DOCKER_TAG}","${env.DOCKER_HUB_USER}")
+                    docker_push("tomato-backend","${env.DOCKER_TAG}","${env.DOCKER_HUB_USER}") 
+                    docker_push("tomato-frontend","${env.DOCKER_TAG}","${env.DOCKER_HUB_USER}")
+                    docker_push("tomato-admin","${env.DOCKER_TAG}","${env.DOCKER_HUB_USER}")
                 }
             }
         }
 
         stage('Docker Cleanup') {
+            when { environment name: 'SKIP_CI', value: 'false' }
             steps {
                 script{
-                    docker_cleanup('tomato-frontend', params.FRONTEND_DOCKER_TAG, "${env.DOCKER_HUB_USER}")
-                    docker_cleanup('tomato-backend', params.BACKEND_DOCKER_TAG, "${env.DOCKER_HUB_USER}")
-                    docker_cleanup('tomato-admin', params.ADMIN_DOCKER_TAG, "${env.DOCKER_HUB_USER}")
+                    docker_cleanup('tomato-frontend', "${env.DOCKER_TAG}", "${env.DOCKER_HUB_USER}")
+                    docker_cleanup('tomato-backend', "${env.DOCKER_TAG}", "${env.DOCKER_HUB_USER}")
+                    docker_cleanup('tomato-admin', "${env.DOCKER_TAG}", "${env.DOCKER_HUB_USER}")
                 }
             }
         }
@@ -142,29 +152,56 @@ pipeline {
 
     post {
         always {
-            generate_reports(projectName: 'Tomato-DevOps', imageName: 'tomato-frontend, tomato-backend, tomato-admin', imageTag: params.FRONTEND_DOCKER_TAG+','+params.BACKEND_DOCKER_TAG+','+params.ADMIN_DOCKER_TAG)
+            generate_reports(projectName: 'Tomato-DevOps', imageName: 'tomato-frontend, tomato-backend, tomato-admin', imageTag: "${env.DOCKER_TAG},${env.DOCKER_TAG},${env.DOCKER_TAG}")
         }
         success {
             script {
-                if (fileExists('dependency-check-report.xml')) {
-                    archiveArtifacts(
-                        artifacts: 'dependency-check-report.xml',
-                        followSymlinks: false
-                    )
+                if (env.SKIP_CI != 'true') {
+                    if (fileExists('dependency-check-report.xml')) {
+                        archiveArtifacts(
+                            artifacts: 'dependency-check-report.xml',
+                            followSymlinks: false
+                        )
+                    } else {
+                        echo "Dependency Check report not found. Continuing pipeline..."
+                    }
+                    
+                    build job: "Tomato-CD", parameters: [
+                        string(name: 'DOCKER_TAG', value: "${env.DOCKER_TAG}")
+                    ]
+                    
+                    emailext attachLog: true,
+                    attachmentsPattern: 'reports/build-report.txt',
+                    from: 'jenkins@alerts.syedmehfooz.com',
+                    subject: "Tomato Application CI build successful - '${currentBuild.result}'",
+                    body: """
+                        <html>
+                        <body>
+                            <div style="background-color: #FFA07A; padding: 10px; margin-bottom: 10px;">
+                                <p style="color: black; font-weight: bold;">Project: ${env.JOB_NAME}</p>
+                            </div>
+                            <div style="background-color: #90EE90; padding: 10px; margin-bottom: 10px;">
+                                <p style="color: black; font-weight: bold;">Build Number: ${env.BUILD_NUMBER}</p>
+                            </div>
+                            <div style="background-color: #87CEEB; padding: 10px; margin-bottom: 10px;">
+                                <p style="color: black; font-weight: bold;">URL: ${env.BUILD_URL}</p>
+                            </div>
+                        </body>
+                        </html>
+                    """,
+                    to: 'hello@syedmehfooz.com',
+                    mimeType: 'text/html'
                 } else {
-                    echo "Dependency Check report not found. Continuing pipeline..."
+                    echo "CI build skipped successfully based on commit message."
                 }
             }
-            build job: "Tomato-CD", parameters: [
-                string(name: 'FRONTEND_DOCKER_TAG', value: "${params.FRONTEND_DOCKER_TAG}"),
-                string(name: 'BACKEND_DOCKER_TAG', value: "${params.BACKEND_DOCKER_TAG}"),
-                string(name: 'ADMIN_DOCKER_TAG', value: "${params.ADMIN_DOCKER_TAG}")
-            ]
+        }
+        failure {
             script {
                 emailext attachLog: true,
                 attachmentsPattern: 'reports/build-report.txt',
-                from: 'jenkins@alerts.securocloud.in',
-                subject: "Tomato Application CI build successful - '${currentBuild.result}'",
+                from: 'jenkins@alerts.syedmehfooz.com',
+                subject: "Tomato Application CI build failed - '${currentBuild.result}'",
                 body: """
                     <html>
                     <body>
@@ -174,36 +211,11 @@ pipeline {
                         <div style="background-color: #90EE90; padding: 10px; margin-bottom: 10px;">
                             <p style="color: black; font-weight: bold;">Build Number: ${env.BUILD_NUMBER}</p>
                         </div>
-                        <div style="background-color: #87CEEB; padding: 10px; margin-bottom: 10px;">
-                            <p style="color: black; font-weight: bold;">URL: ${env.BUILD_URL}</p>
-                        </div>
                     </body>
                     </html>
-            """,
-            to: 'hello@syedmehfooz.com',
-            mimeType: 'text/html'
-            }
-        }
-        failure {
-            script {
-                emailext attachLog: true,
-                attachmentsPattern: 'reports/build-report.txt',
-                from: 'jenkins@alerts.securocloud.in',
-                subject: "Tomato Application CI build failed - '${currentBuild.result}'",
-                body: """
-                    <html>
-                    <body>
-                        <div style="background-color: #7ac3ffff; padding: 10px; margin-bottom: 10px;">
-                            <p style="color: black; font-weight: bold;">Project: ${env.JOB_NAME}</p>
-                        </div>
-                        <div style="background-color: #90EE90; padding: 10px; margin-bottom: 10px;">
-                            <p style="color: black; font-weight: bold;">Build Number: ${env.BUILD_NUMBER}</p>
-                        </div>
-                    </body>
-                    </html>
-            """,
-            to: 'hello@syedmehfooz.com',
-            mimeType: 'text/html'
+                """,
+                to: 'hello@syedmehfooz.com',
+                mimeType: 'text/html'
             }
         }
     }
